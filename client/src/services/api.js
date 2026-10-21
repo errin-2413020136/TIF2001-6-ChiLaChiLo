@@ -26,6 +26,6 @@ export function loginUser(email, password) {
   return sendRequest('/auth/login', { email, password })
 }
 
-export function registerUser(name, email, password) {
-  return sendRequest('/auth/register', { name, email, password })
+export function registerUser(username, email, password) {
+  return sendRequest('/auth/register', { username, email, password })
 }
