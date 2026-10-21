@@ -23,7 +23,6 @@ function AuthField({
         onChange={onChange}
         required={required}
         minLength={minLength}
-        aria-describedby={undefined}
       />
     </div>
   )
