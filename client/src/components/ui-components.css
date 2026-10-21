@@ -1,0 +1,26 @@
+.ui-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 10px 16px; border: 1px solid transparent; border-radius: 9px;
+  font: inherit; font-size: 14px; font-weight: 650; cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.ui-button:disabled { cursor: wait; opacity: 0.65; }
+.ui-button--primary { background: #293966; color: #fff; }
+.ui-button--primary:hover:not(:disabled) { background: #354a82; }
+.ui-button--secondary { background: #f0f2f8; color: #29324a; border-color: #dfe3ed; }
+.ui-button--secondary:hover:not(:disabled) { background: #e4e8f2; }
+.ui-button--danger { background: #b83232; color: #fff; }
+.ui-button--danger:hover:not(:disabled) { background: #982626; }
+.ui-input-field { display: grid; gap: 6px; margin-bottom: 12px; }
+.ui-input-label { color: #353d51; font-size: 13px; font-weight: 650; }
+.ui-input { width: 100%; min-height: 42px; box-sizing: border-box; padding: 10px 12px; border: 1px solid #dfe3ed; border-radius: 9px; background: #fff; color: #202638; font: inherit; font-size: 14px; }
+.ui-input:focus { outline: 3px solid rgb(83 105 189 / 13%); border-color: #5369bd; }
+.ui-input--error { border-color: #b83232; }
+.ui-input-error { color: #a83232; font-size: 12px; }
+.ui-card { margin-bottom: 16px; padding: 20px; border: 1px solid #e8eaf1; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgb(28 39 76 / 6%); }
+.ui-card__title { margin: 0 0 14px; color: #202b55; font-size: 18px; font-weight: 700; }
+.ui-modal-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: rgb(14 20 37 / 55%); }
+.ui-modal { width: min(100%, 460px); padding: 24px; border-radius: 16px; background: #fff; box-shadow: 0 20px 70px rgb(0 0 0 / 22%); }
+.ui-modal__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.ui-modal__title { margin: 0; color: #202b55; font-size: 20px; }
+.ui-modal__close { border: 0; padding: 4px 8px; background: transparent; color: #667085; font: inherit; font-size: 22px; cursor: pointer; }
