@@ -24,7 +24,6 @@ permissions:
 jobs:
   client-checks:
     name: Client lint, tests, and build
-    if: ${{ hashFiles('client/package.json') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -54,7 +53,6 @@ jobs:
 
   server-syntax-check:
     name: Server JavaScript syntax check
-    if: ${{ hashFiles('server/package.json') != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -66,14 +64,20 @@ jobs:
           node-version: 22
 
       - name: Install server dependencies
-        working-directory: server
-        run: npm install --ignore-scripts --no-audit --no-fund
+        shell: bash
+        run: |
+          if [ -f server/package.json ]; then
+            cd server
+            npm install --ignore-scripts --no-audit --no-fund
+          else
+            echo "server/package.json belum tersedia pada ref ini; pemeriksaan backend dilewati."
+          fi
 
       - name: Check JavaScript syntax
         shell: bash
         run: |
-          if [ -d server/src ]; then
+          if [ -f server/package.json ] && [ -d server/src ]; then
             find server/src -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
           else
-            echo "server/src belum tersedia; tidak ada file JavaScript untuk diperiksa."
+            echo "Tidak ada backend JavaScript yang siap diperiksa pada ref ini."
           fi
