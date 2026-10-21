@@ -5,6 +5,7 @@ on:
     paths:
       - "client/**"
       - ".github/workflows/ci.yml"
+      - "docs/**"
   push:
     branches:
       - main
@@ -12,6 +13,7 @@ on:
     paths:
       - "client/**"
       - ".github/workflows/ci.yml"
+      - "docs/**"
 
 permissions:
   contents: read
