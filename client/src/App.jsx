@@ -1,43 +1,181 @@
-import { useState } from 'react';
-import Button from './components/Button';
-import Input from './components/Input';
-import Card from './components/Card';
-import Modal from './components/Modal';
+import { useState } from 'react'
+import AuthField from './components/AuthField'
+import AuthSubmitButton from './components/AuthSubmitButton'
+import { getAuthValidationError } from './utils/authValidation'
+import { loginUser, registerUser } from './services/api'
+import './App.css'
 
-export default function App() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+function App() {
+  const [page, setPage] = useState('login')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState('error')
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
+  const isRegister = page === 'register'
+
+  function changePage(nextPage) {
+    setPage(nextPage)
+    setMessage('')
+    setPassword('')
+    setConfirmPassword('')
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setMessage('')
+
+    const validationError = getAuthValidationError({
+      mode: page,
+      username,
+      email,
+      password,
+      confirmPassword,
+    })
+
+    if (validationError) {
+      setMessageType('error')
+      setMessage(validationError)
+      return
+    }
+
+    setLoading(true)
+    try {
+      if (isRegister) {
+        await registerUser(username.trim(), email.trim(), password)
+        setMessageType('success')
+        setMessage('Pendaftaran berhasil. Silakan masuk menggunakan akun kamu.')
+        setPage('login')
+        setUsername('')
+        setPassword('')
+        setConfirmPassword('')
+      } else {
+        const result = await loginUser(email.trim(), password)
+        if (result.token) localStorage.setItem('auth_token', result.token)
+        setMessageType('success')
+        setMessage(result.message || 'Login berhasil.')
+      }
+    } catch (error) {
+      setMessageType('error')
+      setMessage(error.message || 'Terjadi kesalahan. Silakan coba lagi.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-extrabold text-blue-600 mb-6">ChiLa-ChiLo UI Component Catalog</h1>
-        
-        <Card title="Form Input Component">
-          <Input label="Email" placeholder="Masukkan email..." />
-          <Input label="Password" type="password" error="Password wajib diisi" />
-        </Card>
+    <main className="auth-page">
+      <section className="auth-intro" aria-label="Tentang ChiLaChiLo">
+        <div className="brand">
+          <span className="brand-mark">C</span>
+          <span>ChiLaChiLo</span>
+        </div>
+        <div className="intro-content">
+          <p className="eyebrow">PROYEK SOFTDEV</p>
+          <h1>Selamat datang di ChiLaChiLo.</h1>
+          <p className="intro-description">
+            Masuk atau buat akun untuk melanjutkan ke layanan ChiLaChiLo.
+          </p>
+        </div>
+        <p className="intro-footer">Aplikasi web berbasis React.js</p>
+      </section>
 
-        <Card title="Button Variations">
-          <div className="flex gap-3 flex-wrap">
-            <Button variant="primary">Primary</Button>
-            <Button variant="secondary">Secondary</Button>
-            <Button variant="danger">Danger</Button>
-            <Button isLoading={true}>Loading State</Button>
+      <section className="auth-panel">
+        <div className="auth-card">
+          <div className="mobile-brand">
+            <span className="brand-mark">C</span>
+            <span>ChiLaChiLo</span>
           </div>
-        </Card>
+          <p className="eyebrow">{isRegister ? 'BUAT AKUN' : 'AKUN KAMU'}</p>
+          <h2>{isRegister ? 'Daftar akun' : 'Masuk ke akun'}</h2>
+          <p className="form-description">
+            {isRegister
+              ? 'Isi data berikut untuk membuat akun baru.'
+              : 'Masukkan email dan kata sandi kamu.'}
+          </p>
 
-        <Card title="Modal Component">
-          <Button onClick={() => setIsModalOpen(true)}>Buka Modal</Button>
-        </Card>
+          <form onSubmit={handleSubmit} className="auth-form" noValidate>
+            {isRegister && (
+              <AuthField
+                id="username"
+                name="username"
+                label="Username"
+                type="text"
+                autoComplete="username"
+                placeholder="Buat username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                required
+                minLength={2}
+              />
+            )}
 
-        <Modal isOpen={isModalOpen} title="Konfirmasi Aksi" onClose={() => setIsModalOpen(false)}>
-          <p className="text-gray-600 mb-4">Apakah kamu yakin ingin melanjutkan aksi ini?</p>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Batal</Button>
-            <Button variant="primary" onClick={() => setIsModalOpen(false)}>Ya, Lanjutkan</Button>
-          </div>
-        </Modal>
-      </div>
-    </div>
-  );
+            <AuthField
+              id="email"
+              name="email"
+              label="Email"
+              type="email"
+              autoComplete="email"
+              placeholder="nama@email.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+
+            <AuthField
+              id="password"
+              name="password"
+              label="Kata sandi"
+              type="password"
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
+              placeholder="Minimal 8 karakter"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={8}
+            />
+
+            {isRegister && (
+              <AuthField
+                id="confirm-password"
+                name="confirmPassword"
+                label="Konfirmasi kata sandi"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Ulangi kata sandi"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                required
+                minLength={8}
+              />
+            )}
+
+            {message && (
+              <div className={`form-message ${messageType}`} role="status" aria-live="polite">
+                {message}
+              </div>
+            )}
+
+            <AuthSubmitButton loading={loading} isRegister={isRegister} />
+          </form>
+
+          <p className="switch-page">
+            {isRegister ? 'Sudah punya akun?' : 'Belum punya akun?'}{' '}
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => changePage(isRegister ? 'login' : 'register')}
+            >
+              {isRegister ? 'Masuk' : 'Daftar sekarang'}
+            </button>
+          </p>
+        </div>
+      </section>
+    </main>
+  )
 }
+
+export default App
