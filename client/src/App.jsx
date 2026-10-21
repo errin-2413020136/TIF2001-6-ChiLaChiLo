@@ -98,13 +98,13 @@ function App() {
           <form onSubmit={handleSubmit} className="auth-form">
             {isRegister && (
               <div className="form-field">
-                <label htmlFor="name">Nama lengkap</label>
+                <label htmlFor="name">Username</label>
                 <input
                   id="name"
                   name="name"
                   type="text"
-                  autoComplete="name"
-                  placeholder="Masukkan nama lengkap"
+                  autoComplete="username"
+                  placeholder="Buat username"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   required
