@@ -1,0 +1,47 @@
+name: Client CI
+
+on:
+  pull_request:
+    paths:
+      - "client/**"
+      - ".github/workflows/ci.yml"
+  push:
+    branches:
+      - main
+      - "feat/**"
+    paths:
+      - "client/**"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  client-checks:
+    name: Client lint, tests, and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run validation tests
+        run: npm test
+
+      - name: Build production client
+        run: npm run build
