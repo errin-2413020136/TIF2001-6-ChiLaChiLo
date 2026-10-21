@@ -109,7 +109,8 @@ function App() {
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 required
-                minLength={2}
+                minLength={3}
+                maxLength={30}
               />
             )}
 
@@ -123,6 +124,7 @@ function App() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
+              maxLength={254}
             />
 
             <AuthField
@@ -136,6 +138,7 @@ function App() {
               onChange={(event) => setPassword(event.target.value)}
               required
               minLength={8}
+              maxLength={72}
             />
 
             {isRegister && (
@@ -150,6 +153,7 @@ function App() {
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 required
                 minLength={8}
+                maxLength={72}
               />
             )}
 
