@@ -1,15 +1,14 @@
-
 require("dotenv").config();
-
 const pool = require("./config/database");
 
 async function testConnection() {
   try {
-    const connection = await pool.getConnection();
-    console.log("Koneksi ke MySQL berhasil! 🎉");
-    connection.release();
+    const result = await pool.query("SELECT current_database() AS database, version() AS version");
+    console.log("Koneksi PostgreSQL berhasil:", result.rows[0].database);
+    console.log(result.rows[0].version);
   } catch (error) {
-    console.error("Koneksi ke MySQL gagal:", error.message);
+    console.error("Koneksi PostgreSQL gagal:", error.message);
+    process.exitCode = 1;
   } finally {
     await pool.end();
   }
