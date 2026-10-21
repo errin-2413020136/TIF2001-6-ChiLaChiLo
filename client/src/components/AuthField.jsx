@@ -9,6 +9,7 @@ function AuthField({
   onChange,
   required = false,
   minLength,
+  maxLength,
 }) {
   return (
     <div className="form-field">
@@ -23,6 +24,7 @@ function AuthField({
         onChange={onChange}
         required={required}
         minLength={minLength}
+        maxLength={maxLength}
       />
     </div>
   )
