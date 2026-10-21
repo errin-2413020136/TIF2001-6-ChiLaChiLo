@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import AuthField from './components/AuthField'
+import AuthSubmitButton from './components/AuthSubmitButton'
+import { getAuthValidationError } from './utils/authValidation'
 import { loginUser, registerUser } from './services/api'
 import './App.css'
 
@@ -7,7 +10,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('error')
-  const [name, setName] = useState('')
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -25,34 +28,33 @@ function App() {
     event.preventDefault()
     setMessage('')
 
-    if (isRegister && password !== confirmPassword) {
-      setMessageType('error')
-      setMessage('Konfirmasi kata sandi belum sama.')
-      return
-    }
+    const validationError = getAuthValidationError({
+      mode: page,
+      username,
+      email,
+      password,
+      confirmPassword,
+    })
 
-    if (password.length < 8) {
+    if (validationError) {
       setMessageType('error')
-      setMessage('Kata sandi harus memiliki minimal 8 karakter.')
+      setMessage(validationError)
       return
     }
 
     setLoading(true)
-
     try {
       if (isRegister) {
-        await registerUser(name.trim(), email.trim(), password)
+        await registerUser(username.trim(), email.trim(), password)
         setMessageType('success')
         setMessage('Pendaftaran berhasil. Silakan masuk menggunakan akun kamu.')
         setPage('login')
-        setName('')
+        setUsername('')
         setPassword('')
         setConfirmPassword('')
       } else {
         const result = await loginUser(email.trim(), password)
-        if (result.token) {
-          localStorage.setItem('auth_token', result.token)
-        }
+        if (result.token) localStorage.setItem('auth_token', result.token)
         setMessageType('success')
         setMessage(result.message || 'Login berhasil.')
       }
@@ -95,79 +97,69 @@ function App() {
               : 'Masukkan email dan kata sandi kamu.'}
           </p>
 
-          <form onSubmit={handleSubmit} className="auth-form">
+          <form onSubmit={handleSubmit} className="auth-form" noValidate>
             {isRegister && (
-              <div className="form-field">
-                <label htmlFor="name">Username</label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="username"
-                  placeholder="Buat username"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                  minLength={2}
-                />
-              </div>
+              <AuthField
+                id="username"
+                name="username"
+                label="Username"
+                type="text"
+                autoComplete="username"
+                placeholder="Buat username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                required
+                minLength={2}
+              />
             )}
 
-            <div className="form-field">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="nama@email.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </div>
+            <AuthField
+              id="email"
+              name="email"
+              label="Email"
+              type="email"
+              autoComplete="email"
+              placeholder="nama@email.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
 
-            <div className="form-field">
-              <label htmlFor="password">Kata sandi</label>
-              <input
-                id="password"
-                name="password"
+            <AuthField
+              id="password"
+              name="password"
+              label="Kata sandi"
+              type="password"
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
+              placeholder="Minimal 8 karakter"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={8}
+            />
+
+            {isRegister && (
+              <AuthField
+                id="confirm-password"
+                name="confirmPassword"
+                label="Konfirmasi kata sandi"
                 type="password"
-                autoComplete={isRegister ? 'new-password' : 'current-password'}
-                placeholder="Minimal 8 karakter"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="new-password"
+                placeholder="Ulangi kata sandi"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
                 required
                 minLength={8}
               />
-            </div>
-
-            {isRegister && (
-              <div className="form-field">
-                <label htmlFor="confirm-password">Konfirmasi kata sandi</label>
-                <input
-                  id="confirm-password"
-                  name="confirm-password"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Ulangi kata sandi"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  required
-                  minLength={8}
-                />
-              </div>
             )}
 
             {message && (
-              <div className={`form-message ${messageType}`} role="status">
+              <div className={`form-message ${messageType}`} role="status" aria-live="polite">
                 {message}
               </div>
             )}
 
-            <button className="submit-button" type="submit" disabled={loading}>
-              {loading ? 'Memproses...' : isRegister ? 'Buat akun' : 'Masuk'}
-            </button>
+            <AuthSubmitButton loading={loading} isRegister={isRegister} />
           </form>
 
           <p className="switch-page">
