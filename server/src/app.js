@@ -18,7 +18,7 @@ app.get("/api/v1/health", async (_req, res) => {
   try {
     await pool.query("SELECT 1");
     res.status(200).json({ status: "ok", database: "connected" });
-  } catch (_error) {
+  } catch {
     res.status(503).json({ status: "error", database: "unavailable" });
   }
 });
