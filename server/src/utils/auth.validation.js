@@ -1,5 +1,5 @@
 const USERNAME_PATTERN = /^[a-zA-Z0-9_.-]{3,30}$/;
-const EMAIL_PATTERN = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
