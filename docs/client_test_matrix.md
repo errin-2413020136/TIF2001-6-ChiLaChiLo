@@ -1,6 +1,8 @@
 # Client Authentication Test Matrix
 
-Automated tests: `client/src/utils/authValidation.test.js`, run with `npm test` from `client/`.
+Automated tests run with `npm test` from the `client/` directory. The project uses Node.js built-in test runner, so no extra test dependency is required.
+
+## Automated validation tests
 
 | Case | Input | Expected result |
 | --- | --- | --- |
@@ -11,14 +13,33 @@ Automated tests: `client/src/utils/authValidation.test.js`, run with `npm test` 
 | Short username | Username shorter than 2 non-whitespace characters | Username validation error |
 | Valid login | Valid email and 8+ character password | No validation error |
 | Invalid login email | Malformed email with otherwise valid password | Email validation error |
+| Email with outer spaces | Valid email surrounded by spaces | No validation error |
+| Minimum password length | Password contains exactly 8 characters | No validation error |
 
-## Additional manual UI checks
+## Automated frontend view-state tests
+
+The UI view model is kept in `client/src/utils/authViewModel.js`. Tests verify the display content and submit-button label for both login and registration states.
+
+| Case | Expected result |
+| --- | --- |
+| Login page state | Shows login title, description, and registration switch text |
+| Registration page state | Shows registration title, description, and login switch text |
+| Login submit button | Shows "Masuk" when idle |
+| Registration submit button | Shows "Buat akun" when idle |
+| Loading state | Shows "Memproses..." for both modes |
+
+## Manual browser checks
+
+These checks require the frontend browser and a running backend.
 
 - Switch between login and registration.
-- Confirm the registration-only fields appear only on registration.
+- Confirm username and password confirmation fields appear only during registration.
+- Submit invalid data and confirm the error message appears.
 - Submit while the request is pending and verify the submit button is disabled.
 - Verify server/network errors are shown in the form.
 - Verify successful registration returns to login.
 - Verify a login response containing a token stores `auth_token` in localStorage.
 
-The automated suite covers the pure validation function. The UI/API scenarios above remain manual integration checks until a browser test runner and running backend are available.
+## CI
+
+GitHub Actions runs ESLint, the automated test suite, and the production build for frontend changes. The browser/API scenarios above remain manual integration checks because this repository does not currently include a browser automation runner or a backend test environment in this frontend task.
