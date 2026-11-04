@@ -20,19 +20,14 @@ function createToken(user) {
 }
 
 async function register(req, res) {
-  const username = normalizeString(req.body?.username);
-  const email = normalizeString(req.body?.email).toLowerCase();
-  const password = typeof req.body?.password === "string" ? req.body.password : "";
-
-  if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(username)) {
-    return res.status(400).json({ message: "Username harus 3–30 karakter dan hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda hubung." });
+  const validation = validateRegistration(req.body);
+  if (!validation.valid) {
+    return res.status(400).json({ message: validation.message });
   }
-  if (email.length > 254 || !EMAIL_PATTERN.test(email)) {
-    return res.status(400).json({ message: "Format email tidak valid." });
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    return res.status(500).json({ message: "Konfigurasi autentikasi server belum lengkap." });
   }
-  if (password.length < 8 || password.length > 72) {
-    return res.status(400).json({ message: "Password harus 8–72 karakter." });
-  }
+  const { username, email, password } = validation.data;
 
   try {
     const passwordHash = await bcrypt.hash(password, 12);
@@ -94,7 +89,7 @@ async function login(req, res) {
 function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization || "";
   const [scheme, token] = authHeader.split(" ");
-  if (scheme !== "Bearer" || !token) {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {\n    return res.status(500).json({ message: "Konfigurasi autentikasi server belum lengkap." });\n  }\n  if (scheme !== "Bearer" || !token) {
     return res.status(401).json({ message: "Token Bearer diperlukan." });
   }
   try {
