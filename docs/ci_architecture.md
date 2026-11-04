@@ -2,66 +2,98 @@
 
 ## Tujuan
 
-GitHub Actions memeriksa perubahan secara otomatis ketika Pull Request dibuat atau diperbarui. Workflow membantu menemukan kesalahan lebih awal sebelum perubahan digabungkan ke `main`.
+GitHub Actions memeriksa kualitas kode dan menjalankan unit test secara otomatis saat Pull Request menuju `main` dibuat atau diperbarui. Pemeriksaan ini membantu menemukan masalah sebelum perubahan digabungkan.
 
-## Workflow
+File workflow: `.github/workflows/ci.yml`.
 
-Lokasi konfigurasi: `.github/workflows/ci.yml`
+## Pemicu workflow
 
-### Pemicu
+Workflow berjalan ketika Pull Request menuju `main` atau push ke branch `main`, `feat/**`, dan `chore/**` mengubah salah satu lokasi berikut:
 
-- Pull Request yang mengubah `client/**`, `server/**`, `docs/**`, atau workflow CI.
-- Push ke `main`, `feat/**`, atau `chore/**` dengan perubahan pada jalur yang sama.
+- `client/**`
+- `server/**`
+- `docs/**`
+- `.github/workflows/ci.yml`
 
-### Job 1 — Client lint, tests, and build
+Workflow memakai izin minimum `contents: read`.
 
-Job ini berjalan jika `client/package.json` tersedia.
+## Job frontend — Client lint, tests, and build
+
+Direktori kerja: `client/`.
 
 1. Checkout repository.
-2. Menyiapkan Node.js 22 dan cache npm berdasarkan `client/package-lock.json`.
-3. Memasang dependensi dengan `npm ci`.
-4. Menjalankan ESLint melalui `npm run lint`.
-5. Menjalankan test melalui `npm test`.
-6. Membuat build produksi melalui `npm run build`.
+2. Menyiapkan Node.js 22 dan cache npm menggunakan `client/package-lock.json`.
+3. Menginstal dependensi dengan `npm ci`.
+4. Menjalankan ESLint dengan `npm run lint`.
+5. Menjalankan unit test Node.js dengan `npm test`.
+6. Membuat production build dengan `npm run build`.
 
-### Job 2 — Server JavaScript syntax check
+Unit test frontend saat ini mencakup validasi email, password, konfirmasi password, username, dan state tampilan halaman Login/Register. Rincian skenario tersedia di `docs/client_test_matrix.md`.
 
-Job ini berjalan jika `server/package.json` tersedia.
+## Job backend — Server lint, tests, and syntax check
 
-1. Checkout repository dan menyiapkan Node.js 22.
-2. Memasang dependensi backend tanpa menjalankan lifecycle scripts.
-3. Menjalankan `node --check` untuk setiap berkas JavaScript di `server/src/`.
+Direktori kerja: `server/`.
 
-**Batasan:** job backend saat ini memeriksa sintaks JavaScript saja. Backend belum menyediakan skrip `lint` dan unit test pada `package.json` yang diperiksa, sehingga job ini bukan pengganti ESLint atau automated unit testing. Setelah tim backend menambahkan skrip lint/test, perluasan job backend harus dilakukan agar menjalankan skrip tersebut.
+1. Checkout repository.
+2. Menyiapkan Node.js 22.
+3. Menginstal dependensi dengan `npm install --no-audit --no-fund`. Backend belum menyediakan package-lock, sehingga job ini belum menggunakan `npm ci`.
+4. Menjalankan ESLint dengan `npm run lint`.
+5. Menjalankan Jest beserta laporan coverage dengan `npm run test:coverage`.
+6. Memeriksa sintaks setiap file JavaScript di `src/` dan `tests/` dengan `node --check`.
+7. Mengunggah folder `server/coverage/` sebagai artifact `backend-coverage` jika tersedia.
 
-## Izin dan keamanan
+Unit test backend memakai mock database. Pengujian ini tidak memerlukan kredensial PostgreSQL, tetapi juga tidak menggantikan uji koneksi dan integrasi terhadap database PostgreSQL yang sebenarnya.
 
-- Workflow menggunakan `permissions: contents: read` karena hanya perlu membaca kode.
-- Jangan menyimpan nilai rahasia pada workflow, log, Issue, atau Pull Request.
-- Jangan berikan kredensial produksi kepada workflow Pull Request.
-- `.env` asli harus tetap diabaikan Git; gunakan `.env.example` dengan nilai placeholder.
+## Job gate — CI Required
 
-## Alur Pull Request
+Job `CI Required` bergantung pada job frontend dan backend. Job ini akan gagal jika salah satu job tersebut gagal, dibatalkan, atau tidak berhasil diselesaikan.
 
-1. Sinkronkan `main` dan buat feature branch sesuai tanggung jawab.
-2. Buat commit kecil dengan Conventional Commits.
-3. Push branch dan buat PR menuju `main`.
-4. Isi seluruh bagian pada `.github/pull_request_template.md`, termasuk issue terkait, pengujian aktual, checklist, dan evidence.
-5. Minta minimal satu rekan melakukan review.
-6. Periksa status setiap job CI pada tab Checks.
-7. Merge hanya setelah review dan pemeriksaan yang diwajibkan berhasil.
-
-## Verifikasi status
-
-Keberadaan file YAML tidak otomatis membuktikan workflow berhasil. Periksa tab **Actions** dan bagian **Checks** pada PR. Nama job yang tersedia adalah:
+Gunakan nama check berikut ketika mengatur Branch Protection pada branch `main`:
 
 - `Client lint, tests, and build`
-- `Server JavaScript syntax check` (jika `server/package.json` tersedia)
+- `Server lint, tests, and syntax check`
+- `CI Required`
 
-Required status checks dan Branch Protection Rules tetap perlu diperiksa di pengaturan repository. Jangan menganggapnya aktif sebelum diverifikasi.
+Pilih `CI Required` sebagai satu required check utama jika GitHub menampilkan nama tersebut. Dua job lainnya tetap terlihat sebagai detail pemeriksaan.
 
-## Pekerjaan lanjutan
+## Branch Protection dan peer review
 
-- Tambahkan ESLint serta skrip lint dan unit test backend setelah disepakati dengan pemilik `server/`.
-- Tambahkan pengujian unit autentikasi client dan server.
-- Catat tautan run CI aktual dan hasilnya di PR; jangan mengklaim lulus sebelum ada hasil run.
+Pengaturan dilakukan di GitHub repository:
+
+1. Buka **Settings → Branches** (atau **Rules → Rulesets**, sesuai tampilan GitHub).
+2. Tambahkan rule untuk branch `main`.
+3. Aktifkan kewajiban Pull Request sebelum merge.
+4. Atur minimal **1 required approval**.
+5. Aktifkan **Require status checks to pass before merging**.
+6. Pilih `CI Required` sebagai required status check setelah workflow pernah berjalan dan check tersebut muncul.
+7. Simpan aturan dan uji dengan Pull Request percobaan.
+
+**Status:** dokumentasi ini menjelaskan konfigurasi yang harus diterapkan. Branch Protection belum boleh dinyatakan aktif sebelum pengaturan benar-benar disimpan dan diverifikasi pada GitHub Settings.
+
+## Keamanan
+
+- Jangan commit file `.env` yang berisi kredensial asli.
+- Simpan hanya placeholder di `.env.example`.
+- Jangan menampilkan secret dengan `echo` atau mencetak environment ke log.
+- Unit test yang memakai mock tidak perlu diberi kredensial database produksi.
+- Jangan memberikan secret produksi kepada workflow Pull Request yang tidak tepercaya.
+- Jika secret terlanjur terpublikasi, segera rotasi nilainya.
+
+## Alur kerja Pull Request (Pertemuan 6–7)
+
+1. Ambil Issue/Task dan pindahkan ke In Progress.
+2. Sinkronkan branch lokal dengan `main`.
+3. Buat feature branch sesuai bagian yang dikerjakan.
+4. Buat commit kecil menggunakan Conventional Commits.
+5. Push branch dan buat Pull Request ke branch tujuan yang disepakati.
+6. Isi `.github/pull_request_template.md`, termasuk Issue terkait, hasil pengujian aktual, dan bukti.
+7. Minta minimal satu rekan melakukan review.
+8. Perbaiki komentar reviewer dan tunggu seluruh required checks berhasil.
+9. Merge hanya setelah approval dan status checks terpenuhi.
+
+## Batasan yang masih perlu diverifikasi
+
+- Hasil run workflow pada PR DevOps ini harus diperiksa pada tab **Checks**.
+- Branch Protection dan required status checks perlu dikonfirmasi manual di Settings.
+- Unit test backend masih memakai mock database; runtime check PostgreSQL perlu dilakukan terpisah.
+- Backend belum memiliki `package-lock.json`; pertimbangkan membuat dan mengelolanya pada perubahan backend terpisah agar instalasi CI dapat memakai `npm ci`.
