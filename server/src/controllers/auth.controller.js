@@ -93,7 +93,7 @@ function authenticateToken(req, res, next) {
   try {
     req.auth = jwt.verify(token, process.env.JWT_SECRET, { issuer: "softdev-api" });
     return next();
-  } catch (_error) {
+  } catch {
     return res.status(401).json({ message: "Token tidak valid atau sudah kedaluwarsa." });
   }
 }
