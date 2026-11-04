@@ -1,12 +1,7 @@
 const pool = require("../config/database");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function normalizeString(value) {
-  return typeof value === "string" ? value.trim() : "";
-}
+const { normalizeString, validateRegistration } = require("../utils/auth.validation");
 
 function createToken(user) {
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
@@ -89,7 +84,10 @@ async function login(req, res) {
 function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization || "";
   const [scheme, token] = authHeader.split(" ");
-  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {\n    return res.status(500).json({ message: "Konfigurasi autentikasi server belum lengkap." });\n  }\n  if (scheme !== "Bearer" || !token) {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    return res.status(500).json({ message: "Konfigurasi autentikasi server belum lengkap." });
+  }
+  if (scheme !== "Bearer" || !token) {
     return res.status(401).json({ message: "Token Bearer diperlukan." });
   }
   try {
@@ -115,7 +113,9 @@ async function me(req, res) {
       "SELECT id, username, email, role, created_at FROM users WHERE id = $1",
       [req.auth.sub]
     );
-    if (!result.rows[0]) return res.status(404).json({ message: "Pengguna tidak ditemukan." });
+    if (!result.rows[0]) {
+      return res.status(404).json({ message: "Pengguna tidak ditemukan." });
+    }
     return res.status(200).json({ user: result.rows[0] });
   } catch (error) {
     console.error("Profile lookup failed:", error.message);
