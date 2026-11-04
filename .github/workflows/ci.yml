@@ -1,0 +1,45 @@
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - "server/**"
+      - ".github/workflows/ci.yml"
+  push:
+    branches:
+      - "feat/**"
+      - "chore/**"
+    paths:
+      - "server/**"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  server-checks:
+    name: Server lint, tests, and syntax check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install server dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Jest unit tests
+        run: npm test
+
+      - name: Check JavaScript syntax
+        run: find src tests -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
