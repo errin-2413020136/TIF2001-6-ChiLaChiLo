@@ -55,7 +55,8 @@ describe("validateRegistration", () => {
     expect(validateRegistration({ ...validInput, password: "a".repeat(73) }).valid).toBe(false);
   });
 
-  test("menolak input kosong", () => {
+  test("menolak input kosong atau null", () => {
     expect(validateRegistration({}).valid).toBe(false);
+    expect(validateRegistration(null).valid).toBe(false);
   });
 });
