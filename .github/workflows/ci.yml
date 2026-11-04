@@ -1,3 +1,4 @@
+
 name: Web CI
 
 on:
@@ -7,6 +8,7 @@ on:
       - "server/**"
       - "docs/**"
       - ".github/workflows/ci.yml"
+
   push:
     branches:
       - main
@@ -28,6 +30,7 @@ jobs:
     defaults:
       run:
         working-directory: client
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,7 +42,7 @@ jobs:
           cache: npm
           cache-dependency-path: client/package-lock.json
 
-      - name: Install dependencies
+      - name: Install client dependencies
         run: npm ci
 
       - name: Run ESLint
@@ -51,9 +54,13 @@ jobs:
       - name: Build production client
         run: npm run build
 
-  server-syntax-check:
-    name: Server JavaScript syntax check
+  server-checks:
+    name: Server lint, tests, and syntax check
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -64,20 +71,13 @@ jobs:
           node-version: 22
 
       - name: Install server dependencies
-        shell: bash
-        run: |
-          if [ -f server/package.json ]; then
-            cd server
-            npm install --ignore-scripts --no-audit --no-fund
-          else
-            echo "server/package.json belum tersedia pada ref ini; pemeriksaan backend dilewati."
-          fi
+        run: npm install --no-audit --no-fund
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Jest unit tests
+        run: npm test
 
       - name: Check JavaScript syntax
-        shell: bash
-        run: |
-          if [ -f server/package.json ] && [ -d server/src ]; then
-            find server/src -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
-          else
-            echo "Tidak ada backend JavaScript yang siap diperiksa pada ref ini."
-          fi
+        run: find src tests -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
