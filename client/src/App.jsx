@@ -2,6 +2,7 @@ import { useState } from 'react'
 import AuthField from './components/AuthField'
 import AuthSubmitButton from './components/AuthSubmitButton'
 import { getAuthValidationError } from './utils/authValidation'
+import { getAuthPageContent } from './utils/authViewModel'
 import { loginUser, registerUser } from './services/api'
 import './App.css'
 
@@ -15,7 +16,8 @@ function App() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  const isRegister = page === 'register'
+  const { isRegister, eyebrow, title, description, switchPrompt, switchLabel } =
+    getAuthPageContent(page)
 
   function changePage(nextPage) {
     setPage(nextPage)
@@ -89,13 +91,9 @@ function App() {
             <span className="brand-mark">C</span>
             <span>ChiLaChiLo</span>
           </div>
-          <p className="eyebrow">{isRegister ? 'BUAT AKUN' : 'AKUN KAMU'}</p>
-          <h2>{isRegister ? 'Daftar akun' : 'Masuk ke akun'}</h2>
-          <p className="form-description">
-            {isRegister
-              ? 'Isi data berikut untuk membuat akun baru.'
-              : 'Masukkan email dan kata sandi kamu.'}
-          </p>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2>{title}</h2>
+          <p className="form-description">{description}</p>
 
           <form onSubmit={handleSubmit} className="auth-form" noValidate>
             {isRegister && (
@@ -163,13 +161,13 @@ function App() {
           </form>
 
           <p className="switch-page">
-            {isRegister ? 'Sudah punya akun?' : 'Belum punya akun?'}{' '}
+            {switchPrompt}{' '}
             <button
               className="text-button"
               type="button"
               onClick={() => changePage(isRegister ? 'login' : 'register')}
             >
-              {isRegister ? 'Masuk' : 'Daftar sekarang'}
+              {switchLabel}
             </button>
           </p>
         </div>
