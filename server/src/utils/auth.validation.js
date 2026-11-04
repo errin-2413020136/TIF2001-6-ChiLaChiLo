@@ -6,9 +6,10 @@ function normalizeString(value) {
 }
 
 function validateRegistration(input = {}) {
-  const username = normalizeString(input.username);
-  const email = normalizeString(input.email).toLowerCase();
-  const password = typeof input.password === "string" ? input.password : "";
+  const data = input && typeof input === "object" ? input : {};
+  const username = normalizeString(data.username);
+  const email = normalizeString(data.email).toLowerCase();
+  const password = typeof data.password === "string" ? data.password : "";
 
   if (!USERNAME_PATTERN.test(username)) {
     return { valid: false, message: "Username harus 3–30 karakter dan hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda hubung." };
