@@ -45,7 +45,7 @@ function App() {
     { id: 'ORD-1022', time: '11:15', shift: 'Shift Pagi', item: 'Mie Ayam Bang Chila (1)', method: 'QRIS', total: 18000 },
   ])
   const [shiftActive, setShiftActive] = useState(true)
-  const [shiftName, setShiftName] = useState('Shift Siang')
+  const [shiftName] = useState('Shift Siang')
   const [selectedBranch, setSelectedBranch] = useState(branches[0].name)
   const [detailBranch, setDetailBranch] = useState(false)
   const [notice, setNotice] = useState('')
