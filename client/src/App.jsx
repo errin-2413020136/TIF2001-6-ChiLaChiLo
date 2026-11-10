@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import AuthField from './components/AuthField'
 import AuthSubmitButton from './components/AuthSubmitButton'
 import { getAuthValidationError } from './utils/authValidation'
@@ -57,7 +57,7 @@ function App() {
   async function handleAuth(event) {
     event.preventDefault()
     setMessage('')
-    const error = getAuthValidationError({ mode: authMode, username, email, password, confirmPassword })
+    const error = authMode === 'register'\n      ? getAuthValidationError({ mode: authMode, username, email, password, confirmPassword })\n      : (!email.trim() ? 'Masukkan email atau username.' : password.length < 8 ? 'Kata sandi harus memiliki minimal 8 karakter.' : '')
     if (error) { setMessage(error); return }
     setLoading(true)
     try {
@@ -139,7 +139,7 @@ function App() {
             <p>{isRegister ? 'Daftarkan akun untuk mulai menggunakan Chilla-Chillo.' : 'Masuk untuk mulai mengelola operasional Chilla-Chillo hari ini.'}</p>
             <form onSubmit={handleAuth} className="auth-form" noValidate>
               {isRegister && <AuthField id="username" name="username" label="Username" type="text" autoComplete="username" placeholder="Masukkan username" value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} />}
-              <AuthField id="email" name="email" label="Email atau username" type="email" autoComplete="username" placeholder="Masukkan email atau username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <AuthField id="email" name="email" label="Email atau username" type="text" autoComplete="username" placeholder="Masukkan email atau username" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <AuthField id="password" name="password" label="Kata sandi" type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} placeholder="Masukkan kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
               {isRegister && <AuthField id="confirm-password" name="confirmPassword" label="Konfirmasi kata sandi" type="password" autoComplete="new-password" placeholder="Ulangi kata sandi" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} />}
               {!isRegister && <div className="login-options"><label><input type="checkbox" /> Ingat saya</label><button type="button" className="link-button" onClick={() => setMessage('Hubungi admin untuk mengatur ulang kata sandi.')}>Lupa kata sandi?</button></div>}
