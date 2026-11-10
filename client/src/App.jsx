@@ -57,7 +57,9 @@ function App() {
   async function handleAuth(event) {
     event.preventDefault()
     setMessage('')
-    const error = authMode === 'register'\n      ? getAuthValidationError({ mode: authMode, username, email, password, confirmPassword })\n      : (!email.trim() ? 'Masukkan email atau username.' : password.length < 8 ? 'Kata sandi harus memiliki minimal 8 karakter.' : '')
+    const error = authMode === 'register'
+      ? getAuthValidationError({ mode: authMode, username, email, password, confirmPassword })
+      : (!email.trim() ? 'Masukkan email atau username.' : password.length < 8 ? 'Kata sandi harus memiliki minimal 8 karakter.' : '')
     if (error) { setMessage(error); return }
     setLoading(true)
     try {
