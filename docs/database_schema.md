@@ -1,36 +1,47 @@
 # Database schema and data dictionary
 
-Database engine: PostgreSQL (cloud provider such as Neon or Supabase). The executable baseline DDL is in [database_schema.sql](./database_schema.sql).
+Database engine: PostgreSQL (Neon, Supabase, or local PostgreSQL). Executable baseline DDL: [database_schema.sql](./database_schema.sql), mirrored at `server/database/schema.sql`.
 
-## ERD
+## Entity relationship diagram
 
 ```mermaid
 erDiagram
-    USERS {
-        BIGINT id PK
-        VARCHAR username UK
-        VARCHAR email UK
-        VARCHAR password_hash
-        VARCHAR role
-        TIMESTAMPTZ created_at
-    }
+  USERS ||--o{ SHIFTS : opens
+  USERS ||--o{ SALES : creates
+  BRANCHES ||--o{ PRODUCTS : owns
+  BRANCHES ||--o{ INGREDIENTS : stocks
+  BRANCHES ||--o{ SHIFTS : operates
+  BRANCHES ||--o{ SALES : records
+  SHIFTS ||--o{ SALES : groups
+  SALES ||--|{ SALE_ITEMS : contains
+  PRODUCTS ||--o{ SALE_ITEMS : sold_as
+  BRANCHES ||--o{ STOCK_MOVEMENTS : tracks
+  PRODUCTS ||--o{ STOCK_MOVEMENTS : product_history
+  INGREDIENTS ||--o{ STOCK_MOVEMENTS : ingredient_history
 ```
 
-The current authentication baseline has one entity, `users`. There are no foreign keys yet because no dependent domain entities have been defined in the supplied project requirements.
+## Tables and key columns
 
-## Data dictionary
+| Table | Important columns | Constraints / purpose |
+|---|---|---|
+| `users` | id, username, email, password_hash, role, created_at | Primary key; unique username/email; role user/admin; bcrypt hash only |
+| `branches` | id, name, manager_name, status | Unique branch name; active/attention/inactive |
+| `products` | id, branch_id, name, price, stock, unit, is_active | Branch FK; unique branch/name; nonnegative price and stock |
+| `ingredients` | id, branch_id, name, stock, minimum_stock, unit | Branch FK; unique branch/name; nonnegative stock/minimum |
+| `shifts` | id, branch_id, name, opened_by, closed_by, started_at, ended_at, status | Branch and user FKs; status/time consistency |
+| `sales` | id, order_code, branch_id, shift_id, created_by, payment_method, total_amount | Unique order code; branch/shift/user FKs; nonnegative total |
+| `sale_items` | id, sale_id, product_id, product_name, unit_price, quantity, subtotal | Sale/product FKs; quantity > 0; snapshot of sold product name/price |
+| `stock_movements` | id, branch_id, item_type, product_id, ingredient_id, movement_type, quantity_before, quantity_after, note, created_by | Audit history for adjustment/sale/restock; exactly one product or ingredient FK |
 
-| Column | Type | Constraints | Purpose |
-|---|---|---|---|
-| `id` | BIGINT identity | Primary key, not null | Unique user identifier |
-| `username` | VARCHAR(30) | Unique, not null; 3–30 permitted characters | Login/display identifier |
-| `email` | VARCHAR(254) | Unique, not null | User email address |
-| `password_hash` | VARCHAR(255) | Not null | bcrypt hash only; never store plaintext passwords |
-| `role` | VARCHAR(20) | Not null, default `user`, CHECK `user/admin` | Role claim for future RBAC |
-| `created_at` | TIMESTAMPTZ | Not null, default current timestamp | Creation time |
+## Seed data
 
-Unique constraints protect username and email. `idx_users_email_lower` supports case-insensitive email lookup. API queries use parameterized PostgreSQL placeholders (`$1`, `$2`, …) to reduce SQL-injection risk.
+The DDL idempotently creates the three branches and the sample menu and raw materials shown in the completed frontend. Initial product and ingredient inventory is seeded for Cabang Nganjuk only. It also creates a default active Shift Siang if that branch does not already have an active shift.
 
-## Apply the schema
+## Data integrity and security
 
-Run the contents of `database_schema.sql` against the PostgreSQL database configured by `DATABASE_URL`. Do not commit real credentials.
+- Stock and price cannot be negative; product sales quantity must be positive.
+- Unique constraints prevent duplicate menu/material names within a branch.
+- Foreign keys prevent deleting branches/products referenced by operational records.
+- Stock adjustment and checkout write audit records in the same database transaction as stock changes.
+- Checkout uses row locks to prevent concurrent sales from overselling inventory.
+- API queries use parameterized values; credentials are provided through environment variables.
