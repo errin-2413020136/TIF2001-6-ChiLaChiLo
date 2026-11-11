@@ -1,73 +1,87 @@
-# REST API specifications
+# REST API specifications — ChiLa-Chillo
 
-Base URL for local development: `http://localhost:5000/api/v1`. All request and response bodies are JSON. Send `Content-Type: application/json` for JSON request bodies. The API currently implements authentication and a health check.
+Base URL: `http://localhost:5000/api/v1`. All request/response bodies use JSON. Send `Content-Type: application/json` for JSON bodies. Operational endpoints require `Authorization: Bearer <jwt>`.
 
-## Endpoints
+## Authentication
 
-| Method | Endpoint | Auth | Purpose |
-|---|---|---|---|
-| GET | `/health` | None | Check API and database connectivity |
-| POST | `/auth/register` | None | Create a user, hash password, and return a JWT |
-| POST | `/auth/login` | None | Verify credentials and return a JWT |
-| GET | `/auth/me` | Bearer JWT | Return the authenticated user's profile |
+### POST `/auth/register`
+Request: `{ "username": "kasir01", "email": "kasir@example.com", "password": "strong-password" }`
 
-## POST /auth/register
+Success `201`: `{ "message": "...", "token": "<jwt>", "user": { "id": 1, "username": "...", "email": "...", "role": "user" } }`.
+
+Errors: `400` invalid input, `409` username/email already used, `500` server configuration error.
+
+### POST `/auth/login`
+Request: `{ "identifier": "kasir@example.com", "password": "strong-password" }`. Identifier accepts username or email.
+
+Success `200`: JWT and user profile. Errors: `400` invalid request, `401` invalid credentials, `500` server error.
+
+### GET `/auth/me`
+Requires Bearer JWT. Returns the current user profile. Errors: `401` invalid/missing/expired token, `404` user not found.
+
+## Health
+
+### GET `/health`
+Checks PostgreSQL connectivity. Returns `200` when connected or `503` when unavailable.
+
+## Operational endpoints (JWT required)
+
+All operational data defaults to the seeded `Cabang Nganjuk` branch. Pass `?branchId=<id>` to select another branch where supported. The authenticated user's ID is recorded for stock changes and sales.
+
+### GET `/products`
+Returns active food/menu products.
+
+Success: `{ "items": [{ "id": 1, "name": "Large", "price": 20000, "stock": 15, "unit": "Porsi" }] }`.
+
+### GET `/ingredients`
+Returns raw materials with current and minimum stock.
+
+Success: `{ "items": [{ "id": 1, "name": "Tepung tapioka", "stock": 25, "minimum": 10, "unit": "kg", "needs_restock": false }] }`.
+
+### PATCH `/products/:id/stock` and PATCH `/ingredients/:id/stock`
+Request: `{ "stock": 20, "note": "Restok mingguan", "branchId": 1 }`. `branchId` is optional for the default branch; note is optional and max 500 characters. Product stock must be an integer; ingredient stock may be decimal. The update and stock movement history are committed in one SQL transaction.
+
+Errors: `400` invalid quantity/note/id, `404` branch/item not found, `500` server error.
+
+### POST `/sales`
+Creates a POS transaction and decreases product stock atomically. The backend locks product rows, rejects insufficient stock, inserts the sale and its lines, and records stock movements. An active shift must exist for the selected branch.
 
 Request:
 ```json
-{ "username": "student_01", "email": "student@example.com", "password": "strong-password" }
-```
-
-Rules: username must match `^[a-zA-Z0-9_.-]{3,30}$`; email must be valid and at most 254 characters; password must be 8–72 characters. Email is normalized to lowercase. Password is hashed with bcrypt before it is persisted.
-
-Success (201):
-```json
 {
-  "message": "Registrasi berhasil.",
-  "token": "<jwt>",
-  "user": { "id": "1", "username": "student_01", "email": "student@example.com", "role": "user", "created_at": "..." }
+  "branchId": 1,
+  "paymentMethod": "cash",
+  "items": [
+    { "productId": 1, "quantity": 2 },
+    { "productId": 2, "quantity": 1 }
+  ]
 }
 ```
 
-Errors: `400` invalid input or JSON; `409` username/email already exists; `500` unexpected server/configuration error.
+Payment methods: `cash`, `qris`, `transfer`, `other`. Quantity must be an integer from 1 to 1000. A product may appear only once per request. Success `201`: sale summary and item details.
 
-## POST /auth/login
+Errors: `400` invalid cart/payment method, `404` branch/product not found, `409` no active shift or insufficient stock, `500` server error. A failed checkout rolls back all stock and transaction writes.
 
-Request:
-```json
-{ "identifier": "student@example.com", "password": "strong-password" }
-```
+### GET `/sales`
+Returns latest sales for the selected branch. Optional `limit` is clamped to 1–100 (default 50). Response includes order code, payment method, total, timestamp, shift name, and item summary.
 
-`identifier` may be the username or email. For compatibility, `email` or `username` may be sent instead of `identifier`.
+### GET `/branches`
+Returns branch ID, name, manager, and status.
 
-Success (200):
-```json
-{
-  "message": "Login berhasil.",
-  "token": "<jwt>",
-  "user": { "id": "1", "username": "student_01", "email": "student@example.com", "role": "user", "created_at": "..." }
-}
-```
+### GET `/branches/:id/summary`
+Returns branch sales total, quantity sold, and transaction count.
 
-Errors: `400` missing/invalid fields; `401` invalid credentials; `500` unexpected server/configuration error. The same 401 response is used for unknown users and incorrect passwords.
+### GET `/shifts`
+Returns recent shifts for the selected branch (latest 30).
 
-## GET /auth/me
+### PATCH `/shifts/active/close`
+Request: `{ "branchId": 1 }` (optional for default branch). Closes the active shift and records the authenticated user. Returns `409` when no active shift exists.
 
-Header: `Authorization: Bearer <jwt>`
+## Database and security
 
-Success (200): `{ "user": { "id": "1", "username": "student_01", "email": "student@example.com", "role": "user", "created_at": "..." } }`
-
-Errors: `401` missing, invalid, or expired token; `404` user no longer exists; `500` unexpected server error.
-
-## GET /health
-
-Success (200): `{ "status": "ok", "database": "connected" }`. If the database is unreachable, returns `503` with `{ "status": "error", "database": "unavailable" }`.
-
-## Security and operational notes
-
-- JWTs are signed using `JWT_SECRET`, include the `sub` and `role` claims, expire after `JWT_EXPIRES_IN` (default one hour), and specify issuer `softdev-api`.
-- Use a random secret of at least 32 characters in local/deployment secrets; never commit real secrets.
-- Database statements use parameterized queries.
-- Input is trimmed/validated on the server. Request JSON is limited to 10 KB.
-- Current API has authentication and a role claim; role-specific protected business routes must enforce authorization with the exported `requireRole(...roles)` middleware when those routes are added.
-- No pagination/filter query parameters are currently needed by the authentication endpoints.
+- PostgreSQL DDL: [database_schema.sql](./database_schema.sql); data dictionary: [database_schema.md](./database_schema.md).
+- Passwords are hashed with bcrypt; JWT uses `JWT_SECRET` (minimum 32 characters), issuer `softdev-api`, and expiry `JWT_EXPIRES_IN` (default `1h`).
+- SQL statements use parameterized values. Dynamic table/column names in stock adjustment are selected only from fixed server-side allowlists.
+- Checkout and stock adjustment use PostgreSQL transactions and row locks.
+- Never commit `.env`, database connection strings, or production secrets.
+- The current operational endpoints use the default branch unless a branch ID is supplied. Role-specific authorization and branch-level user permissions remain future work; JWT authentication currently identifies the caller but does not yet scope users to assigned branches.
