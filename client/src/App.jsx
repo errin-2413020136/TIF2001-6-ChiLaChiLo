@@ -83,6 +83,12 @@ function App() {
     } finally { setLoading(false) }
   }
 
+  function enterDemoMode() {
+    setMessage('')
+    setPage('Kasir Penjualan')
+    setNotice('Mode demo aktif. Data yang ditampilkan adalah data contoh dan hanya tersimpan selama sesi browser.')
+  }
+
   function addToCart(product) {
     setCart((current) => {
       const found = current.find((item) => item.id === product.id)
@@ -147,6 +153,16 @@ function App() {
               {!isRegister && <div className="login-options"><label><input type="checkbox" /> Ingat saya</label><button type="button" className="link-button" onClick={() => setMessage('Hubungi admin untuk mengatur ulang kata sandi.')}>Lupa kata sandi?</button></div>}
               {message && <div className={`form-message ${messageType}`} role="status">{message}</div>}
               <AuthSubmitButton loading={loading} isRegister={isRegister} />
+              {import.meta.env.DEV && !isRegister && (
+                <button
+                  type="button"
+                  className="subtle-button"
+                  style={{ width: '100%', marginTop: '10px' }}
+                  onClick={enterDemoMode}
+                >
+                  Masuk sebagai Demo
+                </button>
+              )}
             </form>
             <div className="auth-switch">{isRegister ? 'Sudah memiliki akun?' : 'Belum memiliki akun?'} <button className="link-button" onClick={() => { setAuthMode(isRegister ? 'login' : 'register'); setMessage('') }}>{isRegister ? 'Masuk' : 'Daftar sekarang'}</button></div>
             <div className="login-help">Gunakan layanan bantuan admin jika Anda mengalami kendala saat masuk.</div>
