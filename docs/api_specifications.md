@@ -74,8 +74,14 @@ Returns branch sales total, quantity sold, and transaction count.
 ### GET `/shifts`
 Returns recent shifts for the selected branch (latest 30).
 
+### POST `/shifts/open`
+Request: `{ "branchId": 1, "name": "Shift Siang" }`. Branch ID is optional for the default branch and name defaults to `Shift Siang`. Returns `201`; returns `409` if a shift is already active.
+
 ### PATCH `/shifts/active/close`
 Request: `{ "branchId": 1 }` (optional for default branch). Closes the active shift and records the authenticated user. Returns `409` when no active shift exists.
+
+### GET `/stock-movements`
+Returns stock adjustment and sale history for the selected branch. Optional `limit` is clamped to 1–100 (default 50).
 
 ## Database and security
 
