@@ -28,7 +28,7 @@ Direktori kerja: `client/`.
 5. Menjalankan unit test Node.js dengan `npm test`.
 6. Membuat production build dengan `npm run build`.
 
-Unit test frontend saat ini mencakup validasi email, password, konfirmasi password, username, dan state tampilan halaman Login/Register. Rincian skenario tersedia di `docs/client_test_matrix.md`.
+Unit test frontend mencakup validasi dan state tampilan Login/Register. Rincian skenario tersedia di `docs/client_test_matrix.md`.
 
 ## Job backend — Server lint, tests, and syntax check
 
@@ -36,17 +36,17 @@ Direktori kerja: `server/`.
 
 1. Checkout repository.
 2. Menyiapkan Node.js 22.
-3. Menginstal dependensi dengan `npm install --no-audit --no-fund`. Backend belum menyediakan package-lock, sehingga job ini belum menggunakan `npm ci`.
+3. Menginstal dependensi dengan `npm install --no-audit --no-fund`. Backend belum menyediakan `package-lock.json`, sehingga job ini belum menggunakan `npm ci`.
 4. Menjalankan ESLint dengan `npm run lint`.
 5. Menjalankan Jest beserta laporan coverage dengan `npm run test:coverage`.
 6. Memeriksa sintaks setiap file JavaScript di `src/` dan `tests/` dengan `node --check`.
 7. Mengunggah folder `server/coverage/` sebagai artifact `backend-coverage` jika tersedia.
 
-Unit test backend memakai mock database. Pengujian ini tidak memerlukan kredensial PostgreSQL, tetapi juga tidak menggantikan uji koneksi dan integrasi terhadap database PostgreSQL yang sebenarnya.
+Unit test backend memakai mock database. Pengujian ini tidak memerlukan kredensial PostgreSQL, tetapi tidak menggantikan uji koneksi dan integrasi terhadap PostgreSQL sebenarnya.
 
 ## Job gate — CI Required
 
-Job `CI Required` bergantung pada job frontend dan backend. Job ini akan gagal jika salah satu job tersebut gagal, dibatalkan, atau tidak berhasil diselesaikan.
+Job `CI Required` bergantung pada job frontend dan backend. Job ini gagal jika salah satu job tersebut gagal, dibatalkan, atau tidak berhasil diselesaikan.
 
 Gunakan nama check berikut ketika mengatur Branch Protection pada branch `main`:
 
@@ -54,30 +54,32 @@ Gunakan nama check berikut ketika mengatur Branch Protection pada branch `main`:
 - `Server lint, tests, and syntax check`
 - `CI Required`
 
-Pilih `CI Required` sebagai satu required check utama jika GitHub menampilkan nama tersebut. Dua job lainnya tetap terlihat sebagai detail pemeriksaan.
+Pilih `CI Required` sebagai required check utama jika GitHub menampilkan nama tersebut.
+
+## Bukti run CI yang sudah diverifikasi
+
+Run #58 pada PR #37 selesai dengan kesimpulan **success**:
+
+- Frontend: ESLint berhasil, 12 unit test lulus, dan production build berhasil.
+- Backend pada commit tersebut: ESLint berhasil, 2 test suites dan 16 unit test lulus, serta syntax check berhasil.
+- Backend coverage: 66.25% statements, 69.44% branches, 66.66% functions, dan 66.25% lines.
+- Artifact `backend-coverage` berhasil diunggah.
+- Job `CI Required`: success.
+
+Tautan run: https://github.com/errin-2413020136/TIF2001-6-ChiLaChiLo/actions/runs/41868598595
+
+**Batas bukti:** Run #58 berasal dari PR #37 dan mendahului penambahan endpoint serta unit test inventaris melalui PR #41. Karena itu, run tersebut belum membuktikan bahwa test inventaris baru pada versi `main` setelah PR #41 lulus. Pull Request audit DevOps berikutnya perlu menjalankan ulang workflow terhadap kondisi repository terbaru.
 
 ## Branch Protection dan peer review
 
-Pengaturan dilakukan di GitHub repository:
+Status ruleset repository diperiksa pada 12 November 2026:
 
-1. Buka **Settings → Branches** (atau **Rules → Rulesets**, sesuai tampilan GitHub).
-2. Tambahkan rule untuk branch `main`.
-3. Aktifkan kewajiban Pull Request sebelum merge.
-4. Atur minimal **1 required approval**.
-5. Aktifkan **Require status checks to pass before merging**.
-6. Pilih `CI Required` sebagai required status check setelah workflow pernah berjalan dan check tersebut muncul.
-7. Simpan aturan dan uji dengan Pull Request percobaan.
+- Ruleset bernama `main` sudah ada.
+- Enforcement masih `disabled`.
+- `required_status_checks` masih kosong.
+- Konfigurasi minimal 1 approval tersimpan pada ruleset, tetapi tidak berlaku selama enforcement disabled.
 
-**Status:** dokumentasi ini menjelaskan konfigurasi yang harus diterapkan. Branch Protection belum boleh dinyatakan aktif sebelum pengaturan benar-benar disimpan dan diverifikasi pada GitHub Settings.
-
-## Keamanan
-
-- Jangan commit file `.env` yang berisi kredensial asli.
-- Simpan hanya placeholder di `.env.example`.
-- Jangan menampilkan secret dengan `echo` atau mencetak environment ke log.
-- Unit test yang memakai mock tidak perlu diberi kredensial database produksi.
-- Jangan memberikan secret produksi kepada workflow Pull Request yang tidak tepercaya.
-- Jika secret terlanjur terpublikasi, segera rotasi nilainya.
+Artinya, `CI Required` sudah tersedia sebagai job workflow tetapi **belum menjadi required status check yang diberlakukan pada branch main**. Ikuti `docs/branch_protection.md` untuk langkah aktivasi oleh pemilik/admin repository.
 
 ## Alur kerja Pull Request (Pertemuan 6–7)
 
@@ -93,7 +95,8 @@ Pengaturan dilakukan di GitHub repository:
 
 ## Batasan yang masih perlu diverifikasi
 
-- Hasil run workflow pada PR DevOps ini harus diperiksa pada tab **Checks**.
-- Branch Protection dan required status checks perlu dikonfirmasi manual di Settings.
+- Workflow perlu dijalankan kembali setelah integrasi PR #41 untuk membuktikan test inventaris terbaru.
+- Branch Protection enforcement dan required status check perlu diaktifkan serta diverifikasi oleh pemilik/admin repository.
 - Unit test backend masih memakai mock database; runtime check PostgreSQL perlu dilakukan terpisah.
 - Backend belum memiliki `package-lock.json`; pertimbangkan membuat dan mengelolanya pada perubahan backend terpisah agar instalasi CI dapat memakai `npm ci`.
+- Hasil CI sukses tidak menggantikan peer review.
