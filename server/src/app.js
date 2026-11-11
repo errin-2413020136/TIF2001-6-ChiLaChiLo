@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const authRoutes = require("./routes/auth.routes");
+const inventoryRoutes = require("./routes/inventory.routes");
 const pool = require("./config/database");
 
 const app = express();
@@ -24,6 +25,7 @@ app.get("/api/v1/health", async (_req, res) => {
 });
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1", inventoryRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Endpoint tidak ditemukan." });
