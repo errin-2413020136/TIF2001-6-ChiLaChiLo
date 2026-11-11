@@ -152,7 +152,7 @@ async function createSale(req, res) {
       saleLines.push({ ...item, product, unitPrice, subtotal });
     }
 
-    const orderCode = `ORD-${Date.now()}-${String(req.auth.sub).slice(-6)}`;
+    const orderCode = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
     const saleResult = await client.query(
       "INSERT INTO sales (order_code, branch_id, shift_id, created_by, payment_method, total_amount) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, order_code, total_amount::float AS total, created_at",
       [orderCode, branchId, shiftResult.rows[0].id, req.auth.sub, paymentMethod, total]
@@ -217,12 +217,19 @@ async function branchSummary(req, res) {
   try {
     const result = await pool.query(
       `SELECT b.id, b.name, b.manager_name, b.status,
-        COALESCE(SUM(s.total_amount), 0)::float AS total_sales,
-        COALESCE(SUM(si.quantity), 0)::int AS portions_sold,
-        COUNT(DISTINCT s.id)::int AS transaction_count
-       FROM branches b LEFT JOIN sales s ON s.branch_id = b.id
-       LEFT JOIN sale_items si ON si.sale_id = s.id
-       WHERE b.id = $1 GROUP BY b.id`,
+        COALESCE(sales.total_sales, 0)::float AS total_sales,
+        COALESCE(items.portions_sold, 0)::int AS portions_sold,
+        COALESCE(sales.transaction_count, 0)::int AS transaction_count
+       FROM branches b
+       LEFT JOIN (
+         SELECT branch_id, SUM(total_amount) AS total_sales, COUNT(*) AS transaction_count
+         FROM sales GROUP BY branch_id
+       ) sales ON sales.branch_id = b.id
+       LEFT JOIN (
+         SELECT s.branch_id, SUM(si.quantity) AS portions_sold
+         FROM sales s JOIN sale_items si ON si.sale_id = s.id GROUP BY s.branch_id
+       ) items ON items.branch_id = b.id
+       WHERE b.id = $1`,
       [branchId]
     );
     if (!result.rows[0]) return res.status(404).json({ message: "Cabang tidak ditemukan." });
@@ -243,6 +250,46 @@ async function listShifts(req, res) {
     return res.status(200).json({ items: result.rows });
   } catch (error) {
     return respondServerError(res, error, "List shifts failed");
+  }
+}
+
+async function openShift(req, res) {
+  const branchId = await resolveBranchId(req.body?.branchId);
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "Shift Siang";
+  if (!branchId || !name || name.length > 50) {
+    return res.status(400).json({ message: "Cabang atau nama shift tidak valid." });
+  }
+  try {
+    const existing = await pool.query(
+      "SELECT id FROM shifts WHERE branch_id = $1 AND status = 'active' LIMIT 1",
+      [branchId]
+    );
+    if (existing.rows[0]) return res.status(409).json({ message: "Masih ada shift aktif pada cabang ini." });
+    const result = await pool.query(
+      "INSERT INTO shifts (branch_id, name, opened_by, status) VALUES ($1, $2, $3, 'active') RETURNING id, name, status, started_at",
+      [branchId, name, req.auth.sub]
+    );
+    return res.status(201).json({ message: "Shift berhasil dimulai.", shift: result.rows[0] });
+  } catch (error) {
+    return respondServerError(res, error, "Open shift failed");
+  }
+}
+
+async function listStockMovements(req, res) {
+  const limit = Math.min(parsePositiveId(req.query.limit) || 50, 100);
+  try {
+    const branchId = await resolveBranchId(req.query.branchId);
+    if (!branchId) return res.status(404).json({ message: "Cabang tidak ditemukan." });
+    const result = await pool.query(
+      `SELECT id, item_type, product_id, ingredient_id, movement_type,
+        quantity_before::float AS quantity_before, quantity_after::float AS quantity_after,
+        note, created_at
+       FROM stock_movements WHERE branch_id = $1 ORDER BY created_at DESC LIMIT $2`,
+      [branchId, limit]
+    );
+    return res.status(200).json({ items: result.rows });
+  } catch (error) {
+    return respondServerError(res, error, "List stock movements failed");
   }
 }
 
@@ -270,5 +317,7 @@ module.exports = {
   listBranches,
   branchSummary,
   listShifts,
+  openShift,
   closeActiveShift,
+  listStockMovements,
 };
