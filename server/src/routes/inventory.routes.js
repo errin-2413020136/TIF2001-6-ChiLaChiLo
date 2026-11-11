@@ -17,9 +17,11 @@ router.patch("/ingredients/:id/stock", (req, res) => {
 });
 router.post("/sales", inventory.createSale);
 router.get("/sales", inventory.listSales);
+router.get("/stock-movements", inventory.listStockMovements);
 router.get("/branches", inventory.listBranches);
 router.get("/branches/:id/summary", inventory.branchSummary);
 router.get("/shifts", inventory.listShifts);
+router.post("/shifts/open", inventory.openShift);
 router.patch("/shifts/active/close", inventory.closeActiveShift);
 
 module.exports = router;
