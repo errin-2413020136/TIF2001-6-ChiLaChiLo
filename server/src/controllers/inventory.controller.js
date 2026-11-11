@@ -271,6 +271,9 @@ async function openShift(req, res) {
     );
     return res.status(201).json({ message: "Shift berhasil dimulai.", shift: result.rows[0] });
   } catch (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({ message: "Masih ada shift aktif pada cabang ini." });
+    }
     return respondServerError(res, error, "Open shift failed");
   }
 }
